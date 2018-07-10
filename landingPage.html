@@ -1,0 +1,27 @@
+<!doctype html>
+<html ng-app="mainApp" style="height: 90%;">
+
+<head>
+    <meta charset="utf-8" />
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.2/angular.js"></script>
+    <script src="app.js"></script>
+    <script src="https://unpkg.com/ag-grid@18.1.1/dist/ag-grid.min.js"></script>
+</head>
+
+<body ng-controller="stockController" style="height: 90%;">
+    <div style="height: 100%;">
+        <h1>
+            <strong>Screener {{selectedTab}}</strong>
+        </h1>
+        <h1>{{name}}</h1>
+        <button ng-click="getNiftyStocks()">Nifty 50</button>
+        <button ng-click="getNextNiftyStocks()">Nifty Next 50</button>
+        <button ng-click="getMidCapNiftyStocks()">Nifty MidCap 50</button>
+        <button ng-click="terminate()">Exit</button>
+        <button ng-click="update()" style="float: right;">Refresh</button>
+        <div id="myGrid" style="width: 100%; height: 80%;" class="ag-theme-balham"></div>
+
+    </div>
+</body>
+
+</html>
