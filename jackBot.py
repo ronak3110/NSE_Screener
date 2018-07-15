@@ -110,7 +110,7 @@ def createCSV():
 
 # schedule.every(1).minutes.do(getDataForStocks)
 # schedule.every().hour.do(getDataForStocks)
-schedule.every().day.at("09:31").do(getDataForStocks)
+schedule.every().day.at("09:27").do(getDataForStocks)
 
 while 1:
     schedule.run_pending()
