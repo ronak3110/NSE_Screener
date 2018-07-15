@@ -13,6 +13,10 @@
         <h1>
             <strong>Screener {{selectedTab}}</strong>
         </h1>
+        <div>
+            <input type="text" value="Scheduler Time format(hh:mm)" ng-model="schedulerTime">
+            <button ng-click="setSchedulerTime()">Set</button>
+        </div>
         <h1>{{name}}</h1>
         <button ng-click="getNiftyStocks()">Nifty 50</button>
         <button ng-click="getNextNiftyStocks()">Nifty Next 50</button>

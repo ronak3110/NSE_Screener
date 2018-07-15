@@ -32,6 +32,16 @@ var stockService = app.service('stockService', function ($http) {
     }, function myError(response) {
     });
   }
+  
+  this.setSchedulerTime = function(newTime){
+    $http({
+      method: "GET",
+      url: "http://127.0.0.1:5002/updateTime?time="+newTime
+    }).then(function mySuccess(response) {
+      alert("updated scheduler timer");
+    }, function myError(response) {
+    });
+  };
 
   this.getMidCapStocks = function (callbackFunc) {
     $http({
@@ -175,6 +185,13 @@ app.controller('stockController', function ($scope, stockService, $http) {
       }
       sizeToFit();
     });
+  };
+  $scope.setSchedulerTime = function(){
+    if($scope.schedulerTime !== "undefined"){
+      stockService.setSchedulerTime($scope.schedulerTime);
+    }else{
+      alert("enter the time in proper format (hh:mm) ex. (09:25) or (15:30)");
+    }
   };
 
   function getRowStyleScheduled(params) {
