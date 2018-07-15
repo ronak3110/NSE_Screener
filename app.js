@@ -32,7 +32,7 @@ var stockService = app.service('stockService', function ($http) {
     }, function myError(response) {
     });
   }
-  
+
   this.setSchedulerTime = function(newTime){
     $http({
       method: "GET",
@@ -188,9 +188,16 @@ app.controller('stockController', function ($scope, stockService, $http) {
   };
   $scope.setSchedulerTime = function(){
     if($scope.schedulerTime !== "undefined"){
-      stockService.setSchedulerTime($scope.schedulerTime);
+        var data = $scope.schedulerTime.split(":");
+        if(Number(data[0])>=Number(0) && Number(data[0])<Number(24) && Number(data[1])>=Number(0) && Number(data[1])<Number(60))
+        {
+              stockService.setSchedulerTime($scope.schedulerTime);
+        }
+        else{
+            alert("enter the time in proper format (hh:mm) ex. (09:25) or (15:30)");
+        }
     }else{
-      alert("enter the time in proper format (hh:mm) ex. (09:25) or (15:30)");
+        alert("please enter the time");
     }
   };
 

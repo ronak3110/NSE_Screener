@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import os
 import time
+import fileinput
 from flask import Flask, request
 from flask_restful import Resource, Api
 import webbrowser
@@ -11,6 +12,8 @@ import signal
 
 app = Flask(__name__)
 api = Api(app)
+
+schedulerTime = "09:27"
 
 @app.after_request
 def after_request(response):
@@ -46,11 +49,23 @@ class Terminate(Resource):
     def get(self):
         os.kill(os.getpid(), signal.SIGTERM)
 
+class UpdateSchedulerTimer(Resource):
+    def get(self):
+        global schedulerTime
+        args = request.args['time']
+        for line in fileinput.input("jackBot.py", inplace=True):
+            if line.__contains__("schedulerTime = " + '"' + str(schedulerTime) + '"'):
+                print(line.replace(str(schedulerTime), str(args)), end='')
+            else:
+                print(line, end='')
+        schedulerTime = args
+
 api.add_resource(NiftyStocks, '/niftyStocks')  # Route_1
 api.add_resource(NextNiftyStocks, '/NextNiftyStocks')  # Route_2
 api.add_resource(MidCapNiftyStocks, '/midcapNiftyStocks')  # Route_3
 api.add_resource(Terminate, '/terminate')  # Route_4 KILL
 api.add_resource(UpadateData, '/refreshData')  # Route_5 UPDATE
+api.add_resource(UpdateSchedulerTimer,'/updateTime') # Route_6 Update Timer
 
 
 path = os.getcwd()+"\\All_data.xlsx"
@@ -110,7 +125,7 @@ def createCSV():
 
 # schedule.every(1).minutes.do(getDataForStocks)
 # schedule.every().hour.do(getDataForStocks)
-schedule.every().day.at("09:27").do(getDataForStocks)
+schedule.every().day.at(schedulerTime).do(getDataForStocks)
 
 while 1:
     schedule.run_pending()
