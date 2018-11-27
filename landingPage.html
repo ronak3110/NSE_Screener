@@ -12,17 +12,16 @@
     <button ng-click="update()" style="float: right;">Refresh</button>
     <div style="height: 100%;">
         <h1>
-            <strong>Screener {{selectedTab}}</strong>
+            <strong>Screener {{selectedType}}</strong>
         </h1>
         <div style="float:right;">
             <label>Scheduler Time</label>
             <input type="text" value="Scheduler Time format(hh:mm)" ng-model="schedulerTime">
             <button ng-click="setSchedulerTime()">Set</button>
         </div>
-        <h1>{{name}}</h1>
-        <button ng-click="getNiftyStocks()">Nifty 50</button>
-        <button ng-click="getNextNiftyStocks()">Nifty Next 50</button>
-        <button ng-click="getMidCapNiftyStocks()">Nifty MidCap 50</button>
+        Select Type : <select ng-model="selectedType" ng-options="item for item in allIndices" ng-change="fetchData(true)"></select>
+        <label>Percentage Change</label>
+        <input type="number" name="Percentage Change" ng-model="tradeVolume">
         <button ng-click="terminate()">Exit</button>
         <div id="myGrid" style="width: 100%; height: 80%;" class="ag-theme-balham"></div>
 
