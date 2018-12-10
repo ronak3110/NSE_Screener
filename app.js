@@ -1,6 +1,4 @@
-
 //previous candle traded price - current traded price.
-
 'use strict';
 var app = angular.module('mainApp', []);
 
@@ -59,6 +57,7 @@ var stockService = app.service('stockService', function ($http) {
     };
 
 });
+
 app.controller('stockController', function ($scope, stockService, $http) {
     var gridDiv = document.querySelector('#myGrid');
     $scope.selectedTab = "Nifty 50";
@@ -96,6 +95,7 @@ app.controller('stockController', function ($scope, stockService, $http) {
         };
         return item;
     }
+
     $scope.gridOptions = {
         animateRows: true,
         columnDefs: columnDefs,
@@ -158,39 +158,10 @@ app.controller('stockController', function ($scope, stockService, $http) {
                 var res = $scope.gridOptions.api.updateRowData({ add: [newItem] });
             }
 
-            // setTimeout(() => {
-            //     $scope.rowDataOld = $scope.gridOptions.getRowData();
-            // }, 200);
             if (callbackFunc && typeof $scope.tradeVolume !== 'undefined') {
                 $scope.updatePercentageData();
-                // stockService.getMovingAverage($scope.selectedType,function(data){
-                //     $scope.gridOptions.api.forEachNode(function(node, index){
-                //            console.log(node.data);
-                //          if(data.hasOwnProperty(node.data.symbol)){
-                //           node.setDataValue('movingAverage',data[node.data.symbol]);
-                //             if($scope.tradeVolume <= node.data.per){
-                //               if(node.data.ltP > data[node.data.symbol]){
-                //                 node.setDataValue('emaIndicator','Above');
-                //               }else{
-                //                 node.setDataValue('emaIndicator','Below');
-                //               }
-                //             }
-                //           }
-                //       });
-                //   var sortModel = [
-                //     {colId: 'emaIndicator', sort: 'desc'}
-                //   ];
-                //   $scope.gridOptions.api.setSortModel(sortModel);
-                // });
             }
             sizeToFit();
-        });
-    }
-
-    $scope.updateOldData = function () {
-        $scope.rowDataOld = [];
-        $scope.gridOptions.api.forEachNode(function (node, index) {
-            $scope.rowDataOld.push(node.data);
         });
     }
 
@@ -204,13 +175,11 @@ app.controller('stockController', function ($scope, stockService, $http) {
             $scope.gridOptions.api.forEachNode(function (node, index) {
                 var val1 = node.data.ltP.replace(/,/g, '');
                 var val2 = getOldDataLtp(node.data.symbol, oldData).replace(/,/g, '');
-                var perc = (val1 - val2) / val1;
+                var perc = ((val1 - val2) / val1) * 100;
                 console.log("new Value : ", val1, ' Old Value : ', val2, ' Perc Change : ', perc);
-                node.setDataValue('percChange', perc * 100);
+                node.setDataValue('percChange', perc);
                 if (Math.abs(perc) >= $scope.tradeVolume) {
-                    if (perc < 0) {
-                        node.setDataValue('percIndicator', 'Below');
-                    } else if (perc > 0) {
+                    if (perc > 0) {
                         node.setDataValue('percIndicator', 'Above');
                     }
                 }
