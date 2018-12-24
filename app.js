@@ -56,6 +56,28 @@ var stockService = app.service('stockService', function ($http) {
         });
     };
 
+    this.getReferenceData = function (type, callbackFunc) {
+        $http({
+            method: "GET",
+            url: "http://127.0.0.1:5002/getReferenceData?key=" + type
+        }).then(function mySuccess(response) {
+            console.log(response.data);
+            callbackFunc(response.data);
+        }, function myError(response) {
+        });
+    };
+
+    this.referenceStatus = function (callbackFunc) {
+        $http({
+            method: "GET",
+            url: "http://127.0.0.1:5002/getCandleStatus"
+        }).then(function mySuccess(response) {
+            console.log(response.data);
+            callbackFunc(response.data);
+        }, function myError(response) {
+        });
+    };
+
 });
 
 app.controller('stockController', function ($scope, stockService, $http) {
@@ -63,6 +85,7 @@ app.controller('stockController', function ($scope, stockService, $http) {
     $scope.selectedTab = "Nifty 50";
     $scope.rowData = [];
     $scope.rowDataOld = [];
+    $scope.referenceTime = "09:40:00 AM";
     $scope.selectedType = 'Nifty 50';
     $scope.allIndices = ['Nifty Next 50', 'Nifty 50', 'Nifty Midcap 50', 'Nifty Bank', 'Nifty Energy', 'Nifty FIN Service', 'Nifty FMCG', 'Nifty IT', 'Nifty Media', 'Nifty Metal', 'Nifty Pharma', 'Nifty PSU Bank', 'Nifty Realty', 'Nifty PVT Bank'];
     var columnDefs = [
@@ -72,12 +95,8 @@ app.controller('stockController', function ($scope, stockService, $http) {
         { headerName: "Low", field: "low" },
         { headerName: "High", field: "high" },
         { headerName: "Trade Volume", field: "trdVol" },
-        { headerName: "Open-Low", field: "openLow" },
-        { headerName: "openlowStatus", field: "openLowStatus" },
-        { headerName: "Open-high", field: "openHigh" },
-        { headerName: "openhighStatus", field: "openHighStatus" },
-        { headerName: "Percentage Change", field: "percChange" },
-        { headerName: "Percentage Indicator", field: "percIndicator", sort: 'desc' }
+        { headerName: "6th Candle Price", field: "reference" },
+        { headerName: "Reference Status", field: "status", sort: 'desc' }
     ];
 
     function createNewEntry(symbol, open, low, high, trdVol, lastTraded) {
@@ -87,11 +106,7 @@ app.controller('stockController', function ($scope, stockService, $http) {
             low: low,
             high: high,
             trdVol: trdVol,
-            ltP: lastTraded,
-            openLow: (open.replace(/,/g, "") - low.replace(/,/g, "")).toFixed(2),
-            openLowStatus: open.replace(/,/g, "") - low.replace(/,/g, "") === 0 ? "BUY" : "",
-            openHigh: (open.replace(/,/g, "") - high.replace(/,/g, "")).toFixed(2),
-            openHighStatus: open.replace(/,/g, "") - high.replace(/,/g, "") === 0 ? "SELL" : "",
+            ltP: lastTraded
         };
         return item;
     }
@@ -157,11 +172,35 @@ app.controller('stockController', function ($scope, stockService, $http) {
                 var newItem = createNewEntry(data.data[i].symbol, data.data[i].open, data.data[i].low, data.data[i].high, data.data[i].trdVol, data.data[i].ltP);
                 var res = $scope.gridOptions.api.updateRowData({ add: [newItem] });
             }
-
-            if (callbackFunc && typeof $scope.tradeVolume !== 'undefined') {
-                $scope.updatePercentageData();
-            }
+            setTimeout($scope.updatecandleData, 10);
+            // if (callbackFunc && typeof $scope.tradeVolume !== 'undefined') {
+            //     $scope.updatePercentageData();
+            // }
             sizeToFit();
+        });
+    }
+
+    $scope.updatecandleData = function () {
+        console.log('update Data if flag is true');
+        stockService.referenceStatus(function (data) {
+            if (data) {
+                stockService.getReferenceData($scope.selectedType, function (data) {
+                    $scope.gridOptions.api.forEachNode(function (node, index) {
+                        var val1 = node.data.ltP.replace(/,/g, '');
+                        var val2 = getOldDataLtp(node.data.symbol, data.data).replace(/,/g, '');
+                        console.log(val1, val2)
+                        node.setDataValue('reference', val2);
+                        if (val1 > val2) {
+                            node.setDataValue('status', 'BELOW');
+                        } else if (val2 > val1) {
+                            node.setDataValue('status', 'ABOVE');
+                        }
+                    });
+                    setTimeout(function () {
+                        $scope.gridOptions.api.refreshClientSideRowModel('sort');
+                    }, 10);
+                });
+            }
         });
     }
 
@@ -196,12 +235,12 @@ app.controller('stockController', function ($scope, stockService, $http) {
     }
 
     function getRowStyleScheduled(params) {
-        if (params.data.openLowStatus === 'BUY') {
+        if (params.data.status === 'ABOVE') {
             return {
                 'background-color': 'GREEN',
                 'color': 'WHITE'
             }
-        } else if (params.data.openHighStatus === 'SELL') {
+        } else if (params.data.status === 'BELOW') {
             return {
                 'background-color': 'RED',
                 'color': 'WHITE'

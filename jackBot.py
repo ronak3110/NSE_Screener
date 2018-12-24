@@ -20,7 +20,10 @@ import numpy as np
 app = Flask(__name__)
 api = Api(app)
 
-schedulerTime = "21:05"
+schedulerTime = "09:15"
+SCHEDULE_6TH_CANDLE = "09:40"
+
+referenceCandleFlag = False
 
 all_indices = {'Nifty Next 50':'juniorNifty','Nifty 50':'nifty','Nifty Midcap 50':'niftyMidcap50','Nifty Bank':'bankNifty','Nifty Energy':'cnxEnergy','Nifty FIN Service':'cnxFinance',
                'Nifty FMCG':'cnxFMCG','Nifty IT':'cnxit','Nifty Media':'cnxMedia','Nifty Metal':'cnxMetal','Nifty Pharma':'cnxPharma','Nifty PSU Bank':'cnxPSU','Nifty Realty':'cnxRealty','Nifty PVT Bank':'niftyPvtBank'}
@@ -44,10 +47,26 @@ class GetStockJson(Resource):
 
 class GetOldJson(Resource):
     def get(self):
+        # args = request.args['key']
+        # print(args)
+        # print(all_indices.get(args)+'old.json')
+        # with open(all_indices.get(args)+'old.json') as f:
+        #     data = json.loads(f.read())
+        # return data
+        global referenceCandleFlag
+        referenceCandleFlag = True
+
+class GetCandleFlag(Resource):
+    def get(self):
+        global referenceCandleFlag
+        return referenceCandleFlag
+
+class GetReferenceData(Resource):
+    def get(self):
         args = request.args['key']
         print(args)
-        print(all_indices.get(args)+'old.json')
-        with open(all_indices.get(args)+'old.json') as f:
+        print(all_indices.get(args) + 'reference.json')
+        with open(all_indices.get(args) + 'reference.json') as f:
             data = json.loads(f.read())
         return data
 
@@ -75,6 +94,8 @@ api.add_resource(UpadateData, '/refreshData')  # Route_5 UPDATE
 api.add_resource(UpdateSchedulerTimer,'/updateTime') # Route_6 Update Timer
 api.add_resource(GetOldJson,'/getOldJson') # Route_6 Update Timer
 api.add_resource(GetStockJson,'/getStockJson') # Route_1 Get Json for specific entity
+api.add_resource(GetCandleFlag,'/getCandleStatus')
+api.add_resource(GetReferenceData,'/getReferenceData')
 
 
 path = os.getcwd()+"\\All_data.xlsx"
@@ -183,10 +204,29 @@ def createCSV():
     webbrowser.open('file:///'+os.getcwd()+'/landingPage.html')
     app.run(port='5002')
 
+
+def storeReferenceCandleData():
+    print('fetching and storing 6th candle data...')
+    global referenceCandleFlag
+    for entity in all_indices:
+        print("6th candle invoked for entity " + entity +"...")
+        data = requests.get(URL+str(all_indices.get(entity))+URL_END)
+        if data.status_code is 200:
+            print("retrieved data for " + entity)
+            obj = open(all_indices.get(entity) + "reference.json", 'wb')
+            obj.write(data.content)
+            obj.close()
+        else:
+            print("failed to get data for " + entity)
+
+    referenceCandleFlag = True
+
+
 # schedule.every().hour.do(getDataForStocks)
-# schedule.every().day.at(schedulerTime).do(getDataForStocks)
+schedule.every().day.at(schedulerTime).do(getDataForStocks)
+schedule.every().day.at(SCHEDULE_6TH_CANDLE).do(storeReferenceCandleData)
 # schedule.every(5).minutes.do(jackBotAdHoc.updateData())
-# while 1:
-#     schedule.run_pending()
-#     time.sleep(1)
-getDataForStocks()
+while 1:
+    schedule.run_pending()
+    time.sleep(1)
+# getDataForStocks()
