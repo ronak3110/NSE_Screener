@@ -21,8 +21,9 @@ app = Flask(__name__)
 api = Api(app)
 
 schedulerTime = "09:15"
-SCHEDULE_6TH_CANDLE = "09:40"
+SCHEDULE_6TH_CANDLE = "09:53"
 
+candleTaken = 0
 referenceCandleFlag = False
 
 all_indices = {'Nifty Next 50':'juniorNifty','Nifty 50':'nifty','Nifty Midcap 50':'niftyMidcap50','Nifty Bank':'bankNifty','Nifty Energy':'cnxEnergy','Nifty FIN Service':'cnxFinance',
@@ -40,7 +41,6 @@ def after_request(response):
 class GetStockJson(Resource):
     def get(self):
         args = request.args['key']
-        print(args)
         with open(all_indices.get(args)+'.json') as f:
             data = json.load(f)
         return data
@@ -64,14 +64,29 @@ class GetCandleFlag(Resource):
 class GetReferenceData(Resource):
     def get(self):
         args = request.args['key']
-        print(args)
         print(all_indices.get(args) + 'reference.json')
         with open(all_indices.get(args) + 'reference.json') as f:
             data = json.loads(f.read())
         return data
 
+class GetAllData(Resource):
+    def get(self):
+        args = request.args['key']
+        print(all_indices.get(args) + '.json')
+        with open(all_indices.get(args) + '.json') as f:
+            data = json.loads(f.read())
+        return data
+
 class UpadateData(Resource):
     def get(self):
+        global candleTaken
+        global referenceCandleFlag
+        candleTaken = candleTaken + 1
+        print('candle taken count - ', candleTaken)
+        if(candleTaken is 6):
+            storeReferenceCandleData()
+        if(candleTaken is 7):
+            referenceCandleFlag = True
         return jackBotAdHoc.updateData()
 
 class Terminate(Resource):
@@ -96,6 +111,7 @@ api.add_resource(GetOldJson,'/getOldJson') # Route_6 Update Timer
 api.add_resource(GetStockJson,'/getStockJson') # Route_1 Get Json for specific entity
 api.add_resource(GetCandleFlag,'/getCandleStatus')
 api.add_resource(GetReferenceData,'/getReferenceData')
+api.add_resource(GetAllData,'/getAllData')
 
 
 path = os.getcwd()+"\\All_data.xlsx"
@@ -106,17 +122,27 @@ URL_END = "StockWatch.json"
 COLUMN_NAMES = ['symbol','open','high','low','ltP','ptsC','trdVol','open_High','openHigh Status','open_Low','openLow Status']
 
 def getDataForStocks():
-    storeOldData();
+    global candleTaken
+    # candleTaken = candleTaken + 1
+    # storeOldData();
+    all_Data = []
+    print('candle taken count - ',candleTaken)
     for entity in all_indices:
         print("scheduler invoked for entity " + entity +"...")
         data = requests.get(URL+str(all_indices.get(entity))+URL_END)
         if data.status_code is 200:
             print("retrieved data for " + entity)
+            json_data = json.loads(data.text)
+            # print(json_data)
+            all_Data.append(json_data['data'])
+            # print(all_Data)
             obj = open(all_indices.get(entity) + ".json", 'wb')
             obj.write(data.content)
             obj.close()
         else:
             print("failed to get data for " + entity)
+    with open('data.json', 'w') as outfile:
+        json.dump(all_Data, outfile)
 
     createCSV()
 
@@ -127,6 +153,8 @@ def storeOldData():
             copyfile(all_indices.get(entity) + ".json", all_indices.get(entity) + 'old.json')
         except:
             pass
+
+
 
 def updateMovingAverage(args):
     print(args)
@@ -208,23 +236,29 @@ def createCSV():
 def storeReferenceCandleData():
     print('fetching and storing 6th candle data...')
     global referenceCandleFlag
+    all_data = []
     for entity in all_indices:
         print("6th candle invoked for entity " + entity +"...")
         data = requests.get(URL+str(all_indices.get(entity))+URL_END)
         if data.status_code is 200:
             print("retrieved data for " + entity)
+            json_data = json.loads(data.text)
+            # print(json_data)
+            all_data.append(json_data['data'])
             obj = open(all_indices.get(entity) + "reference.json", 'wb')
             obj.write(data.content)
             obj.close()
         else:
             print("failed to get data for " + entity)
 
-    referenceCandleFlag = True
+    with open('reference.json', 'w') as outfile:
+        json.dump(all_data, outfile)
+    # referenceCandleFlag = True
 
 
 # schedule.every().hour.do(getDataForStocks)
 schedule.every().day.at(schedulerTime).do(getDataForStocks)
-schedule.every().day.at(SCHEDULE_6TH_CANDLE).do(storeReferenceCandleData)
+# schedule.every().day.at(SCHEDULE_6TH_CANDLE).do(storeReferenceCandleData)
 # schedule.every(5).minutes.do(jackBotAdHoc.updateData())
 while 1:
     schedule.run_pending()

@@ -34,10 +34,10 @@ var stockService = app.service('stockService', function ($http) {
         });
     };
 
-    this.getSelectedJson = function (type, callbackFunc) {
+    this.getAllData = function (type, callbackFunc) {
         $http({
             method: "GET",
-            url: "http://127.0.0.1:5002/getStockJson?key=" + type
+            url: "http://127.0.0.1:5002/getAllData?key=" + type
         }).then(function mySuccess(response) {
             console.log(response.data);
             callbackFunc(response.data);
@@ -87,6 +87,7 @@ app.controller('stockController', function ($scope, stockService, $http) {
     $scope.rowDataOld = [];
     $scope.referenceTime = "09:40:00 AM";
     $scope.selectedType = 'Nifty 50';
+    $scope.merged = [];
     $scope.allIndices = ['Nifty Next 50', 'Nifty 50', 'Nifty Midcap 50', 'Nifty Bank', 'Nifty Energy', 'Nifty FIN Service', 'Nifty FMCG', 'Nifty IT', 'Nifty Media', 'Nifty Metal', 'Nifty Pharma', 'Nifty PSU Bank', 'Nifty Realty', 'Nifty PVT Bank'];
     var columnDefs = [
         { headerName: "Symbol", field: "symbol" },
@@ -165,9 +166,10 @@ app.controller('stockController', function ($scope, stockService, $http) {
     $scope.fetchData = function (callbackFunc) {
         console.log($scope.selectedType);
         $scope.gridOptions.api.setRowData([]);
-        stockService.getSelectedJson($scope.selectedType, function (data) {
+        stockService.getAllData($scope.selectedType, function (data) {
             console.log(data);
-            console.log($scope.rowDataOld);
+            // $scope.merged = [].concat.apply([], data);
+            // console.log($scope.rowDataOld);
             for (var i = 0; i < data.data.length; i++) {
                 var newItem = createNewEntry(data.data[i].symbol, data.data[i].open, data.data[i].low, data.data[i].high, data.data[i].trdVol, data.data[i].ltP);
                 var res = $scope.gridOptions.api.updateRowData({ add: [newItem] });
@@ -185,15 +187,16 @@ app.controller('stockController', function ($scope, stockService, $http) {
         stockService.referenceStatus(function (data) {
             if (data) {
                 stockService.getReferenceData($scope.selectedType, function (data) {
+                    // var mergedReferenceData = [].concat.apply([], data);
                     $scope.gridOptions.api.forEachNode(function (node, index) {
                         var val1 = node.data.ltP.replace(/,/g, '');
                         var val2 = getOldDataLtp(node.data.symbol, data.data).replace(/,/g, '');
                         console.log(val1, val2)
                         node.setDataValue('reference', val2);
                         if (val1 > val2) {
-                            node.setDataValue('status', 'BELOW');
-                        } else if (val2 > val1) {
                             node.setDataValue('status', 'ABOVE');
+                        } else if (val2 > val1) {
+                            node.setDataValue('status', 'BELOW');
                         }
                     });
                     setTimeout(function () {

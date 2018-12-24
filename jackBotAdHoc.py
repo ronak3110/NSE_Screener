@@ -1,6 +1,7 @@
 import requests
 import os
 from shutil import copyfile
+import json
 
 path = os.getcwd()+"\\All_data.xlsx"
 
@@ -10,17 +11,23 @@ URL = "https://www.nseindia.com/live_market/dynaContent/live_watch/stock_watch/"
 URL_END = "StockWatch.json"
 
 def getDataForStocks():
-    storeOldData()
+    # storeOldData()
+    all_data = []
     for entity in all_indices:
         print("scheduler invoked for entity " + entity +"...")
         data = requests.get(URL+str(all_indices.get(entity))+URL_END)
         if data.status_code is 200:
             print("retrieved data for " + entity)
+            json_data = json.loads(data.text)
+            # print(json_data)
+            all_data.append(json_data['data'])
             obj = open(all_indices.get(entity) + ".json", 'wb')
             obj.write(data.content)
             obj.close()
         else:
             return False
+    with open('data.json', 'w') as outfile:
+        json.dump(all_data, outfile)
     return True
 
 def storeOldData():
