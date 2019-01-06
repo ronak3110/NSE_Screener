@@ -45,6 +45,26 @@ var stockService = app.service('stockService', function ($http) {
         });
     };
 
+    this.getDataJson = function (callbackFunc) {
+        $http({
+            method: "GET",
+            url: "http://127.0.0.1:5002/getDataJson"
+        }).then(function mySuccess(response) {
+            callbackFunc(response.data);
+        }, function myError(response) {
+        });
+    };
+
+    this.getCurrentDataJson = function (callbackFunc) {
+        $http({
+            method: "GET",
+            url: "http://127.0.0.1:5002/getCurrentDataJson"
+        }).then(function mySuccess(response) {
+            callbackFunc(response.data);
+        }, function myError(response) {
+        });
+    };
+
     this.getOldJson = function (type, callbackFunc) {
         $http({
             method: "GET",
@@ -88,6 +108,8 @@ app.controller('stockController', function ($scope, stockService, $http) {
     $scope.referenceTime = "09:40:00 AM";
     $scope.selectedType = 'Nifty 50';
     $scope.merged = [];
+    $scope.previousData = [];
+    $scope.candleCount = -1;
     $scope.allIndices = ['Nifty Next 50', 'Nifty 50', 'Nifty Midcap 50', 'Nifty Bank', 'Nifty Energy', 'Nifty FIN Service', 'Nifty FMCG', 'Nifty IT', 'Nifty Media', 'Nifty Metal', 'Nifty Pharma', 'Nifty PSU Bank', 'Nifty Realty', 'Nifty PVT Bank'];
     var columnDefs = [
         { headerName: "Symbol", field: "symbol" },
@@ -96,7 +118,7 @@ app.controller('stockController', function ($scope, stockService, $http) {
         { headerName: "Low", field: "low" },
         { headerName: "High", field: "high" },
         { headerName: "Trade Volume", field: "trdVol" },
-        { headerName: "6th Candle Price", field: "reference" },
+        // { headerName: "6th Candle Price", field: "reference" },
         { headerName: "Reference Status", field: "status", sort: 'desc' }
     ];
 
@@ -168,18 +190,96 @@ app.controller('stockController', function ($scope, stockService, $http) {
         $scope.gridOptions.api.setRowData([]);
         stockService.getAllData($scope.selectedType, function (data) {
             console.log(data);
-            // $scope.merged = [].concat.apply([], data);
-            // console.log($scope.rowDataOld);
+            $scope.candleCount = $scope.candleCount + 1;
+            $scope.updatePreviousData(callbackFunc);
             for (var i = 0; i < data.data.length; i++) {
                 var newItem = createNewEntry(data.data[i].symbol, data.data[i].open, data.data[i].low, data.data[i].high, data.data[i].trdVol, data.data[i].ltP);
                 var res = $scope.gridOptions.api.updateRowData({ add: [newItem] });
             }
-            setTimeout($scope.updatecandleData, 10);
-            // if (callbackFunc && typeof $scope.tradeVolume !== 'undefined') {
-            //     $scope.updatePercentageData();
-            // }
             sizeToFit();
         });
+    }
+
+    $scope.updatePreviousData = function (callbackFunc) {
+        var symbols = [];
+        if (!callbackFunc) {
+            setTimeout(function () {
+                $scope.setStatus();
+            }, 10);
+        } else {
+            stockService.getCurrentDataJson(function (currData) {
+                var currentData = [].concat.apply([], currData);
+                stockService.getDataJson(function (data) {
+                    $scope.merged = [].concat.apply([], data);
+                    if ($scope.candleCount === 0) {
+                        $scope.merged.map(function (item) {
+                            $scope.previousData.push({
+                                symbol: item.symbol,
+                                status: []
+                            });
+                        });
+                    } else {
+                        $scope.merged.forEach(function (item) {
+                            if (!symbols.includes(item.symbol)) {
+                                symbols.push(item.symbol);
+                                var current = getOldDataLtp(item.symbol, currentData).replace(/,/g, '');
+                                var oldData = getOldDataLtp(item.symbol, $scope.merged).replace(/,/g, '');
+                                if (current > oldData) {
+                                    $scope.previousData.forEach(function (key) {
+                                        if (key.symbol === item.symbol) {
+                                            key.status.push('ABOVE');
+                                        }
+                                    });
+                                } else if (current < oldData) {
+                                    $scope.previousData.forEach(function (key) {
+                                        if (key.symbol === item.symbol) {
+                                            key.status.push('BELOW');
+                                        }
+                                    });
+                                } else {
+                                    $scope.previousData.forEach(function (key) {
+                                        if (key.symbol === item.symbol) {
+                                            key.status.push('EQUAL');
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                    console.log($scope.previousData);
+                    setTimeout(function () {
+                        $scope.setStatus();
+                    }, 10);
+                });
+            });
+        }
+    }
+
+    $scope.setStatus = function () {
+        var greenList = [];
+        var redList = [];
+        $scope.previousData.forEach(function (item) {
+            if (item.status.length >= 3) {
+                var len = item.status.length - 1;
+                if (item.status[len] === item.status[len - 1] && item.status[len - 1] === item.status[len - 2] && item.status[len] === 'ABOVE') {
+                    greenList.push(item.symbol);
+                } else if (item.status[len] === item.status[len - 1] && item.status[len - 1] === item.status[len - 2] && item.status[len] === 'BELOW') {
+                    redList.push(item.symbol);
+                }
+            }
+        });
+        setTimeout(() => {
+            $scope.gridOptions.api.forEachNode(function (item) {
+                if (greenList.includes(item.data.symbol)) {
+                    item.setDataValue('status', 'ABOVE');
+                } else if (redList.includes(item.data.symbol)) {
+                    item.setDataValue('status', 'BELOW');
+                }
+            });
+            setTimeout(function () {
+                $scope.gridOptions.api.refreshClientSideRowModel('sort');
+            }, 10);
+        }, 10);
     }
 
     $scope.updatecandleData = function () {

@@ -108,12 +108,6 @@ class GetDataJson(Resource):
             data = json.loads(f.read())
         return data
 
-class GetCurrentDataJson(Resource):
-    def get(self):
-        with open('data.json') as f:
-            data = json.loads(f.read())
-        return data
-
 api.add_resource(Terminate, '/terminate')  # Route_4 KILL
 api.add_resource(UpadateData, '/refreshData')  # Route_5 UPDATE
 api.add_resource(UpdateSchedulerTimer,'/updateTime') # Route_6 Update Timer
@@ -123,7 +117,6 @@ api.add_resource(GetCandleFlag,'/getCandleStatus')
 api.add_resource(GetReferenceData,'/getReferenceData')
 api.add_resource(GetAllData,'/getAllData')
 api.add_resource(GetDataJson,'/getDataJson')
-api.add_resource(GetCurrentDataJson,'/getCurrentDataJson')
 
 
 path = os.getcwd()+"\\All_data.xlsx"
@@ -256,8 +249,8 @@ def storeReferenceCandleData():
     # referenceCandleFlag = True
 
 
-schedule.every().day.at(schedulerTime).do(getDataForStocks)
-while 1:
-    schedule.run_pending()
-    time.sleep(1)
-# getDataForStocks()
+# schedule.every().day.at(schedulerTime).do(getDataForStocks)
+# while 1:
+#     schedule.run_pending()
+#     time.sleep(1)
+getDataForStocks()

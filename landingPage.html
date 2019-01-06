@@ -19,7 +19,7 @@
             <input type="text" value="Scheduler Time format(hh:mm)" ng-model="schedulerTime">
             <button ng-click="setSchedulerTime()">Set</button>
         </div>
-        Select Type : <select ng-model="selectedType" ng-options="item for item in allIndices" ng-change="fetchData(true)"></select>
+        Select Type : <select ng-model="selectedType" ng-options="item for item in allIndices" ng-change="fetchData(false)"></select>
         <label>Percentage Change</label>
         <input type="number" name="Percentage Change" ng-model="tradeVolume">
         <button ng-click="terminate()">Exit</button>
